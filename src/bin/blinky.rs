@@ -53,6 +53,10 @@ fn clamp(x: i16, min: i16, max: i16) -> i16 {
     x
 }
 
+fn invalid_position(x: i16, y: i16, pixels: &[[bool; 32]; 128], new_pixels: &[[bool; 32]; 128]) -> bool {
+    return pixels[x as usize][y as usize] || new_pixels[x as usize][y as usize];
+}
+
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
     { // init heap
@@ -121,28 +125,38 @@ async fn main(_spawner: Spawner) {
     loop {
         let accel = imu.read_accel().unwrap();
 
-        info!("x: {}, y: {}, z: {}", (accel.x*5.0) as i8, (accel.y*5.0) as i8, (accel.z*5.0) as i8);
+        info!("\nx: {}\ny: {}\nz: {}\n", accel.x, accel.y, accel.z);
 
         let mut new_pixels : [[bool; 32]; 128] = [[false; 32]; 128];
         for x in 0..128 {
             for y in 0..32 {
-                if (pixels[x as usize][y as usize]) {
-                    let accel_x = (accel.x*5.0) as i16;
+                if pixels[x as usize][y as usize] {
+                    let accel_x = -(accel.x*5.0) as i16;
                     let accel_y = (accel.y*5.0) as i16;
-                    let new_x = clamp(x as i16 - accel_x, 0, 127);
-                    let new_y = clamp(y as i16 + accel_y as i16, 0, 31);
+                    let new_x = clamp(x + accel_x, 0, 127);
+                    let new_y = clamp(y + accel_y, 0, 31);
 
-                    if (pixels[new_x as usize][new_y as usize] || new_pixels[new_x as usize][new_y as usize]) {
-                        let new_x = if accel_x != 0 {clamp(x - if accel_x > 0 { 1 } else { -1 }, 0, 127)} else {x};
+                    if invalid_position(new_x, new_y, &pixels, &new_pixels) {
+                        let new_x = if accel_x != 0 {clamp(x + if accel_x > 0 { 1 } else { -1 }, 0, 127)} else {x};
                         let new_y = if accel_y != 0 {clamp(y + if accel_y > 0 { 1 } else { -1 }, 0, 31)} else {y};
-                        if (pixels[new_x as usize][new_y as usize] || new_pixels[new_x as usize][new_y as usize]) {
-                            new_pixels[x as usize][y as usize] = true;
-                        } else {
-                            new_pixels[new_x as usize][new_y as usize] = true;
+
+                        let randdir = rng.random_range(-1..=1);
+                        if invalid_position(x, new_y, &pixels, &new_pixels) && new_y != y && !invalid_position(clamp(x - randdir, 0, 127), y, &pixels, &new_pixels) {
+                            new_pixels[clamp(x - randdir, 0, 127) as usize][y as usize] = true;
+                            continue;
+                        } else if invalid_position(new_x, y, &pixels, &new_pixels) && new_x != x && !invalid_position(x, clamp(y - randdir, 0, 31), &pixels, &new_pixels){
+                            new_pixels[x as usize][clamp(y - randdir, 0, 31) as usize] = true;
+                            continue;
                         }
-                    } else {
+
+                        if invalid_position(new_x, new_y, &pixels, &new_pixels) {
+                            new_pixels[x as usize][y as usize] = true;
+                            continue;
+                        }
                         new_pixels[new_x as usize][new_y as usize] = true;
+                        continue;
                     }
+                    new_pixels[new_x as usize][new_y as usize] = true;
                 }
             }
         }
