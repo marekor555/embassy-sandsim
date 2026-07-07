@@ -1,0 +1,11 @@
+[default.general]
+chip = "nRF54L15"
+
+[default.flashing]
+enabled = false # <-- This prevents it from flashing the board
+
+[default.rtt]
+enabled = true
+
+[default.gdb]
+enabled = false

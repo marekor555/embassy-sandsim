@@ -1,0 +1,4 @@
+[toolchain]
+channel = "stable"
+components = ["rust-src"]
+targets = ["thumbv8m.main-none-eabihf"]  # nRF54L15 is Cortex-M33 hard-float
