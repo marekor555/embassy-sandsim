@@ -67,14 +67,12 @@ fn invalid_position(x: i16, y: i16, pixels: &[[bool; 32]; 128], new_pixels: &[[b
 fn conway(pixels: &mut[[bool; 32]; 128]){
     let mut new_pixels = [[false; 32]; 128];
 
-    for x in 0..128 {
-        for y in 0..32 {
+    for x in 1..127 {
+        for y in 1..31 {
             let mut count = 0;
             for dx in -1..2 {
-                if dx == 0 && y == 0 {continue}
-                if x+dx < 0 || x+dx > 127 {continue}
                 for dy in -1..2 {
-                    if y+dy < 0 || y+dy > 31 {continue}
+                    if dx == 0 && dy == 0 {continue}
                     count += if pixels[(x+dx) as usize][(y+dy) as usize] {1} else {0};
                 }
             }
